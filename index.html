@@ -408,9 +408,9 @@
         <div class="hint">信用卡 18.25%，消金 18-24%</div>
       </div>
       <div class="field">
-        <label for="orig-monthly">当前月供 / 应还（元）</label>
-        <input type="number" id="orig-monthly" value="9000" min="0" step="100">
-        <div class="hint">用于对比降幅，未知可填 0</div>
+        <label for="orig-terms">原合同期数 N₀</label>
+        <input type="number" id="orig-terms" value="12" min="1" max="360" step="1">
+        <div class="hint">用于推算原月供，常见 12 / 24 / 36</div>
       </div>
     </div>
 
@@ -466,29 +466,29 @@
     <div class="results">
       <div class="result hl">
         <h4>① 协商后月供</h4>
-        <div class="big-num hl" id="r-monthly">¥ 4,167</div>
-        <div class="big-sub" id="r-monthly-sub">¥ 4,167 / 月 × 60 期</div>
-        <div class="result-row"><span class="rk">原月供</span><span class="rv" id="r-orig">¥ 9,000</span></div>
-        <div class="result-row"><span class="rk">月供降幅</span><span class="rv delta-down" id="r-drop">↓ 53.7%</span></div>
-        <div class="result-row"><span class="rk">每月省下</span><span class="rv delta-down" id="r-save">¥ 4,833</span></div>
+        <div class="big-num hl" id="r-monthly">¥ —</div>
+        <div class="big-sub" id="r-monthly-sub">协商后每月应还</div>
+        <div class="result-row"><span class="rk">原合同月供 M₀</span><span class="rv" id="r-orig">¥ —</span></div>
+        <div class="result-row"><span class="rk">月供降幅</span><span class="rv delta-down" id="r-drop">—</span></div>
+        <div class="result-row"><span class="rk">每月省下</span><span class="rv delta-down" id="r-save">¥ —</span></div>
       </div>
 
       <div class="result">
         <h4>② 总还款 &amp; 年限</h4>
-        <div class="big-num" id="r-total">¥ 250,000</div>
-        <div class="big-sub" id="r-total-sub">总还款金额（含已减免）</div>
-        <div class="result-row"><span class="rk">协商后总年限</span><span class="rv" id="r-years">5.0 年</span></div>
-        <div class="result-row"><span class="rk">利息减免</span><span class="rv delta-down" id="r-int-cut">¥ 11,250</span></div>
-        <div class="result-row"><span class="rk">本金减免</span><span class="rv delta-down" id="r-pri-cut">¥ 0</span></div>
+        <div class="big-num" id="r-total">¥ —</div>
+        <div class="big-sub" id="r-total-sub">协商后总应还</div>
+        <div class="result-row"><span class="rk">原合同总应还</span><span class="rv" id="r-orig-total">¥ —</span></div>
+        <div class="result-row"><span class="rk">利息+违约金减免</span><span class="rv delta-down" id="r-int-cut">¥ —</span></div>
+        <div class="result-row"><span class="rk">还款年限</span><span class="rv" id="r-years">— 年</span></div>
       </div>
 
       <div class="result warn">
         <h4>③ 合规校验</h4>
-        <div class="big-num warn" id="r-floor">¥ 4,167</div>
+        <div class="big-num warn" id="r-floor">¥ —</div>
         <div class="big-sub">合规月供地板价 (P / N_max)</div>
-        <div class="result-row"><span class="rk">当前测算月供</span><span class="rv" id="r-current">¥ 4,167</span></div>
-        <div class="result-row"><span class="rk">校验状态</span><span class="rv" id="r-status">合规区间</span></div>
-        <div class="result-row"><span class="rk">距地板差距</span><span class="rv" id="r-gap">0%</span></div>
+        <div class="result-row"><span class="rk">当前测算月供</span><span class="rv" id="r-current">¥ —</span></div>
+        <div class="result-row"><span class="rk">校验状态</span><span class="rv" id="r-status">—</span></div>
+        <div class="result-row"><span class="rk">距地板差距</span><span class="rv" id="r-gap">—</span></div>
       </div>
     </div>
 
@@ -501,9 +501,13 @@
 
   <h2 class="section-h">计算公式</h2>
   <div class="formula">
-    <b>核心公式</b><br>
+    <b>原合同月供（等额本息）</b><br>
+    <span class="var">M₀</span> = <span class="var">P</span> × <span class="var">r</span> × (1 + <span class="var">r</span>)<sup><span class="var">N₀</span></sup> / [ (1 + <span class="var">r</span>)<sup><span class="var">N₀</span></sup> − 1 ]
+    <span class="note">M₀ = 原合同月供　r = 月利率 = APR / 12　N₀ = 原合同期数（典型 12 / 24 / 36）</span>
+    <hr>
+    <b>协商后月供</b><br>
     <span class="var">M</span> = [ <span class="var">P</span> + <span class="var">I₀</span> × (1 − <span class="var">α</span>) − <span class="var">P</span> × <span class="var">β</span> ] / <span class="var">N</span>
-    <span class="note">M = 协商后月供　P = 本金　I₀ = 已产生利息+违约金　α = 利息减免比例　β = 本金减免比例　N = 协商分期期数</span>
+    <span class="note">M = 协商后月供　I₀ = 已产生利息+违约金　α = 利息减免比例　β = 本金减免比例　N = 协商分期期数</span>
     <hr>
     <b>含宽限期的分段公式 (k > 0)</b><br>
     前 k 期：<span class="var">M_t</span> = 200~500（象征性低额）<br>
@@ -519,8 +523,9 @@
   <ol class="steps">
     <li>选择具体银行/平台，系统自动套用该机构典型协商政策上限</li>
     <li>用快选档位输入欠款本金，或直接键入实际数字</li>
+    <li>填入原合同期数 N₀（如 12/24/36），系统按等额本息算出原月供 M₀</li>
     <li>调整 α（利息减免）/ N（期数）滑杆，实时看月供与年限变化</li>
-    <li>对比"原月供"与"协商月供"，输出降幅</li>
+    <li>对比"原合同月供 M₀"与"协商后月供 M"，输出降幅</li>
     <li>关注"合规校验"卡：低于地板价即可能涉及灰产话术</li>
   </ol>
 
@@ -594,7 +599,7 @@
   const institutionEl = document.getElementById('institution');
   const principalEl = document.getElementById('principal');
   const aprEl = document.getElementById('apr');
-  const origMonthlyEl = document.getElementById('orig-monthly');
+  const origTermsEl = document.getElementById('orig-terms');
   const overdueEl = document.getElementById('overdue-months');
   const termsEl = document.getElementById('terms');
   const alphaEl = document.getElementById('alpha');
@@ -628,6 +633,9 @@
       document.getElementById('terms-val').textContent = inst.n_max;
     }
     aprEl.value = inst.apr;
+    // 按产品类型推荐典型 N₀（用户仍可手改）
+    const typicalN0 = { credit_card: 12, bank_loan: 36, consumer_finance: 24, internet_platform: 12 };
+    origTermsEl.value = typicalN0[productTypeEl.value] || 12;
     document.getElementById('terms-hint').textContent = `当前机构上限 ${inst.n_max} 期`;
     document.getElementById('institution-hint').textContent = `已套用 ${inst.name} 政策（最长 ${inst.n_max} 期，α 区间 ${(inst.alpha_lo*100).toFixed(0)}–${(inst.alpha_hi*100).toFixed(0)}%）`;
     document.getElementById('policy-title').textContent = `机构政策 · ${inst.name}`;
@@ -658,7 +666,7 @@
   bindSlider(betaEl, document.getElementById('beta-val'), '%');
   bindSlider(graceEl, document.getElementById('grace-val'));
 
-  [productTypeEl, institutionEl, principalEl, aprEl, origMonthlyEl, overdueEl].forEach(el => {
+  [productTypeEl, institutionEl, principalEl, aprEl, origTermsEl, overdueEl].forEach(el => {
     el.addEventListener('input', () => {
       if (el === productTypeEl) refreshInstitutions();
       else if (el === institutionEl) applyInstitution();
@@ -685,8 +693,20 @@
     const alpha = (parseFloat(alphaEl.value) || 0) / 100;
     const beta = (parseFloat(betaEl.value) || 0) / 100;
     const k = parseInt(graceEl.value) || 0;
-    const origMonthly = Math.max(0, parseFloat(origMonthlyEl.value) || 0);
+    const N0 = Math.max(1, parseInt(origTermsEl.value) || 1);
 
+    // 等额本息：原合同月供 M0
+    const r = apr / 12;
+    let M0;
+    if (r > 0) {
+      const factor = Math.pow(1 + r, N0);
+      M0 = P * r * factor / (factor - 1);
+    } else {
+      M0 = P / N0;
+    }
+    const origTotal = M0 * N0;
+
+    // 已产生利息+违约金
     const I0 = P * apr * months / 12 + P * 0.05 * Math.min(1, months / 12);
     const totalRepay = P * (1 - beta) + I0 * (1 - alpha);
 
@@ -704,14 +724,14 @@
 
     document.getElementById('r-monthly').textContent = fmtY(M);
     document.getElementById('r-monthly-sub').textContent = (k > 0 ? `前 ${k} 期 ¥400 + 后 ${N-k} 期 ${fmtY(M)}` : `${fmtY(M)} / 月 × ${N} 期`);
-    document.getElementById('r-orig').textContent = origMonthly > 0 ? fmtY(origMonthly) : '—';
-    if (origMonthly > 0 && M < origMonthly) {
-      const drop = (1 - M / origMonthly) * 100;
+    document.getElementById('r-orig').textContent = `${fmtY(M0)} × ${N0} 期`;
+    if (M0 > 0 && M < M0) {
+      const drop = (1 - M / M0) * 100;
       document.getElementById('r-drop').textContent = '↓ ' + drop.toFixed(1) + '%';
       document.getElementById('r-drop').className = 'rv delta-down';
-      document.getElementById('r-save').textContent = fmtY(origMonthly - M);
+      document.getElementById('r-save').textContent = fmtY(M0 - M);
       document.getElementById('r-save').className = 'rv delta-down';
-    } else {
+    } else if (M >= M0) {
       document.getElementById('r-drop').textContent = '—';
       document.getElementById('r-drop').className = 'rv';
       document.getElementById('r-save').textContent = '—';
@@ -720,9 +740,9 @@
 
     document.getElementById('r-total').textContent = fmtY(totalRepay);
     document.getElementById('r-total-sub').textContent = `本金 ${fmtY(P*(1-beta))} + 利息 ${fmtY(I0*(1-alpha))}`;
+    document.getElementById('r-orig-total').textContent = fmtY(origTotal);
     document.getElementById('r-years').textContent = (N / 12).toFixed(1) + ' 年';
-    document.getElementById('r-int-cut').textContent = fmtY(I0 * alpha);
-    document.getElementById('r-pri-cut').textContent = fmtY(P * beta);
+    document.getElementById('r-int-cut').textContent = fmtY(origTotal - totalRepay);
 
     document.getElementById('r-floor').textContent = fmtY(Mfloor);
     document.getElementById('r-current').textContent = fmtY(M);
