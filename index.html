@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逾期协商月供测算器 · Debt Negotiation Calculator</title>
+<meta name="description" content="基于《商业银行信用卡业务监督管理办法》第七十条的合规协商空间测算工具，识别反催收灰产话术红线。">
+<style>
+  :root {
+    --bg: #fbfbfd;
+    --surface: #ffffff;
+    --surface-2: #f5f5f7;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.16);
+    --text: #1d1d1f;
+    --text-2: #6e6e73;
+    --text-3: #86868b;
+    --accent: #0071e3;
+    --accent-bg: #e8f1ff;
+    --green: #1a7f37;
+    --green-bg: #e8f7ee;
+    --amber: #b25000;
+    --amber-bg: #fff4e6;
+    --red: #d70015;
+    --red-bg: #ffeceb;
+    --radius: 18px;
+    --radius-sm: 12px;
+    --radius-pill: 980px;
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.55;
+    letter-spacing: -0.01em;
+  }
+
+  /* ===== 顶部导航 ===== */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(251,251,253,0.78);
+    backdrop-filter: saturate(180%) blur(22px);
+    -webkit-backdrop-filter: saturate(180%) blur(22px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1080px; margin: 0 auto;
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px;
+  }
+  .topbar .brand { font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
+  .topbar .meta { color: var(--text-2); font-size: 12.5px; }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  /* ===== Hero ===== */
+  .hero { text-align: center; margin-bottom: 48px; }
+  .hero h1 {
+    font-size: 44px; font-weight: 600;
+    letter-spacing: -0.025em;
+    margin: 0 0 12px;
+    line-height: 1.08;
+  }
+  .hero p {
+    color: var(--text-2);
+    font-size: 18px;
+    max-width: 640px;
+    margin: 0 auto;
+    letter-spacing: -0.01em;
+  }
+  .hero .badges {
+    display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+  }
+  .badge.accent { color: var(--accent); border-color: rgba(0,113,227,0.25); background: var(--accent-bg); }
+  .badge.green { color: var(--green); border-color: rgba(26,127,55,0.25); background: var(--green-bg); }
+
+  /* ===== 区块标题 ===== */
+  h2.section-h {
+    font-size: 28px; font-weight: 600; letter-spacing: -0.02em;
+    margin: 64px 0 20px;
+  }
+  h3 {
+    font-size: 13px; font-weight: 600;
+    color: var(--text-2);
+    margin: 0 0 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ===== 计算器卡片 ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .card-tight { padding: 22px 26px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 880px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--text-2);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 14.5px;
+    background: var(--surface);
+    font-family: inherit;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    transition: border-color .15s, box-shadow .15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%236e6e73' d='M2 4l4 4 4-4'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(0,113,227,0.15);
+  }
+  .hint { font-size: 11.5px; color: var(--text-3); margin-top: 5px; }
+
+  /* ===== 快选按钮 ===== */
+  .preset-row {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+    align-items: center;
+  }
+  .preset-row .preset-label { color: var(--text-2); margin-right: 4px; font-size: 12px; }
+  .preset-btn {
+    padding: 5px 12px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .preset-btn:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+  .preset-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ===== 滑杆 ===== */
+  .slider-wrap { display: flex; align-items: center; gap: 12px; }
+  .slider-wrap input[type=range] {
+    flex: 1; padding: 0; appearance: none; -webkit-appearance: none;
+    height: 4px; background: var(--surface-2); border-radius: 999px;
+    border: none;
+  }
+  .slider-wrap input[type=range]::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; border: 1px solid rgba(0,0,0,0.18);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    cursor: pointer;
+  }
+  .slider-wrap input[type=range]:focus { outline: none; }
+  .slider-val {
+    min-width: 60px; text-align: right;
+    font-variant-numeric: tabular-nums; font-size: 14.5px;
+    color: var(--text); font-weight: 600;
+  }
+
+  .section-tag {
+    display: inline-block;
+    font-size: 12px; color: var(--text-2);
+    margin: 0 0 12px;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+  .section-tag .num {
+    display: inline-block;
+    width: 20px; height: 20px;
+    line-height: 20px; text-align: center;
+    border-radius: 50%; background: var(--surface-2);
+    color: var(--text); font-weight: 600;
+    margin-right: 6px;
+  }
+
+  /* ===== 政策卡 ===== */
+  .policy {
+    margin-top: 18px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    font-size: 13px;
+  }
+  .policy .pb-title { font-weight: 600; color: var(--text); margin-bottom: 10px; font-size: 13.5px; }
+  .policy-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px 18px; }
+  @media (max-width: 600px) { .policy-grid { grid-template-columns: 1fr; } }
+  .policy .pb-row { display: flex; justify-content: space-between; gap: 8px; color: var(--text-2); padding: 2px 0; }
+  .policy .pb-row b { color: var(--text); font-weight: 500; text-align: right; }
+
+  /* ===== 结果卡 ===== */
+  .results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px; }
+  @media (max-width: 880px) { .results { grid-template-columns: 1fr; } }
+  .result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+  }
+  .result.hl { background: var(--green-bg); border-color: rgba(26,127,55,0.25); }
+  .result.warn { background: var(--amber-bg); border-color: rgba(178,80,0,0.25); }
+  .result.danger { background: var(--red-bg); border-color: rgba(215,0,21,0.3); }
+  .result h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .result.hl h4 { color: var(--green); }
+  .result.warn h4 { color: var(--amber); }
+  .result.danger h4 { color: var(--red); }
+  .big-num {
+    font-size: 34px; font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin: 6px 0 4px;
+  }
+  .big-num.hl { color: var(--green); }
+  .big-num.warn { color: var(--amber); }
+  .big-num.danger { color: var(--red); }
+  .big-sub { font-size: 12.5px; color: var(--text-2); margin-bottom: 14px; }
+
+  .result-row {
+    display: flex; justify-content: space-between;
+    font-size: 13.5px; padding: 4px 0;
+    font-variant-numeric: tabular-nums;
+    border-top: 1px solid var(--border);
+  }
+  .result-row:first-of-type { border-top: none; }
+  .result-row .rk { color: var(--text-2); }
+  .result-row .rv { color: var(--text); font-weight: 500; }
+  .result-row .rv.delta-down { color: var(--green); }
+  .result-row .rv.delta-up { color: var(--red); }
+
+  /* ===== 红线提示 ===== */
+  .red-line {
+    margin-top: 16px;
+    border: 1px solid rgba(215,0,21,0.3);
+    border-radius: var(--radius-sm);
+    background: var(--red-bg);
+    padding: 14px 18px;
+    font-size: 13px;
+    color: #82061e;
+    display: none;
+  }
+  .red-line.show { display: block; }
+  .red-line .rl-title { font-weight: 600; margin-bottom: 6px; color: var(--red); }
+  .red-line ul { margin: 6px 0 0 18px; padding: 0; }
+  .red-line li { margin: 2px 0; }
+
+  /* ===== 公式块 ===== */
+  .formula {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin: 12px 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.85;
+  }
+  .formula b { font-weight: 600; }
+  .formula .var { color: var(--accent); }
+  .formula .note { display: block; font-family: -apple-system, "SF Pro Text", sans-serif; font-size: 12.5px; color: var(--text-2); margin-top: 4px; }
+  .formula hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  /* ===== 表格 ===== */
+  table { border-collapse: separate; border-spacing: 0; width: 100%; margin: 14px 0; font-size: 13.5px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;}
+  th, td { padding: 11px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  th { background: var(--surface-2); font-weight: 600; color: var(--text); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  blockquote {
+    margin: 16px 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--accent-bg);
+    color: #03398b;
+    font-size: 13.5px;
+    border-radius: 4px var(--radius-sm) var(--radius-sm) 4px;
+  }
+
+  ol.steps { font-size: 14px; color: var(--text); padding-left: 22px; }
+  ol.steps li { margin: 6px 0; }
+
+  footer {
+    margin-top: 64px; padding-top: 28px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px; color: var(--text-3);
+    text-align: center;
+    line-height: 1.7;
+  }
+  footer a { color: var(--text-2); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="brand">逾期协商月供测算器</span>
+    <span class="meta">v1.0 · 合规口径 · 仅供参考</span>
+  </div>
+</div>
+
+<main>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>逾期协商月供测算器</h1>
+    <p>一站式估算合规协商空间，识别反催收灰产话术红线。</p>
+    <div class="badges">
+      <span class="badge accent">31 家头部金融机构</span>
+      <span class="badge green">合规公式</span>
+      <span class="badge">隐私本地计算</span>
+    </div>
+  </section>
+
+  <!-- 计算器卡 -->
+  <section class="card">
+
+    <div class="section-tag"><span class="num">1</span>选择金融机构</div>
+    <div class="grid">
+      <div class="field" style="grid-column: span 2;">
+        <label for="institution">具体银行 / 金融机构</label>
+        <select id="institution"></select>
+        <div class="hint" id="institution-hint">选择后将自动套用该机构典型协商政策</div>
+      </div>
+      <div class="field">
+        <label for="product-type">产品类型</label>
+        <select id="product-type">
+          <option value="credit_card">信用卡</option>
+          <option value="bank_loan">银行贷款</option>
+          <option value="consumer_finance">持牌消费金融</option>
+          <option value="internet_platform">互联网借贷平台</option>
+        </select>
+        <div class="hint">影响协商法律依据和上限期数</div>
+      </div>
+      <div class="field">
+        <label for="overdue-months">已逾期月数</label>
+        <input type="number" id="overdue-months" value="3" min="0" max="60" step="1">
+        <div class="hint">影响利息违约金估算</div>
+      </div>
+    </div>
+
+    <div class="section-tag" style="margin-top:28px;"><span class="num">2</span>欠款金额</div>
+    <div class="grid">
+      <div class="field" style="grid-column: span 2;">
+        <label for="principal">本金（元）</label>
+        <input type="number" id="principal" value="30000" min="1000" step="1000">
+        <div class="preset-row">
+          <span class="preset-label">快选</span>
+          <button class="preset-btn" data-amount="10000">1w</button>
+          <button class="preset-btn" data-amount="30000">3w</button>
+          <button class="preset-btn" data-amount="50000">5w</button>
+          <button class="preset-btn" data-amount="100000">10w</button>
+          <button class="preset-btn" data-amount="150000">15w</button>
+          <button class="preset-btn" data-amount="250000">25w</button>
+          <button class="preset-btn" data-amount="500000">50w</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="apr">原合同年化利率 %</label>
+        <input type="number" id="apr" value="18" min="0" max="36" step="0.5">
+        <div class="hint">信用卡 18.25%，消金 18-24%</div>
+      </div>
+      <div class="field">
+        <label for="orig-monthly">当前月供 / 应还（元）</label>
+        <input type="number" id="orig-monthly" value="9000" min="0" step="100">
+        <div class="hint">用于对比降幅，未知可填 0</div>
+      </div>
+    </div>
+
+    <div class="section-tag" style="margin-top:28px;"><span class="num">3</span>协商参数</div>
+    <div class="grid">
+      <div class="field">
+        <label for="terms">分期期数 N</label>
+        <div class="slider-wrap">
+          <input type="range" id="terms" min="6" max="60" value="60" step="1">
+          <span class="slider-val" id="terms-val">60</span>
+        </div>
+        <div class="hint" id="terms-hint">最大值受机构政策限制</div>
+      </div>
+      <div class="field">
+        <label for="alpha">利息减免比例 α</label>
+        <div class="slider-wrap">
+          <input type="range" id="alpha" min="0" max="100" value="100" step="5">
+          <span class="slider-val" id="alpha-val">100%</span>
+        </div>
+        <div class="hint">100% 即全额停息挂账</div>
+      </div>
+      <div class="field">
+        <label for="beta">本金减免比例 β</label>
+        <div class="slider-wrap">
+          <input type="range" id="beta" min="0" max="50" value="0" step="5">
+          <span class="slider-val" id="beta-val">0%</span>
+        </div>
+        <div class="hint">仅极困难案例，常见 0%</div>
+      </div>
+      <div class="field">
+        <label for="grace">前置宽限期数 k</label>
+        <div class="slider-wrap">
+          <input type="range" id="grace" min="0" max="12" value="0" step="1">
+          <span class="slider-val" id="grace-val">0</span>
+        </div>
+        <div class="hint">前 k 期象征性低额</div>
+      </div>
+    </div>
+
+    <!-- 政策卡 -->
+    <div class="policy" id="policy-box">
+      <div class="pb-title" id="policy-title">机构政策 · 招商银行 · 信用卡</div>
+      <div class="policy-grid">
+        <div class="pb-row"><span>法律依据</span><b id="policy-law">《商业银行信用卡业务监督管理办法》第七十条</b></div>
+        <div class="pb-row"><span>最长协商期数</span><b id="policy-nmax">60 期 (5 年)</b></div>
+        <div class="pb-row"><span>停息减免常见区间</span><b id="policy-alpha">α 70%–100%</b></div>
+        <div class="pb-row"><span>协商通过率</span><b id="policy-pass">中-高</b></div>
+        <div class="pb-row"><span>资料门槛</span><b id="policy-doc">失业证明 / 病历 / 收入流水</b></div>
+      </div>
+    </div>
+
+    <!-- 结果区 -->
+    <div class="results">
+      <div class="result hl">
+        <h4>① 协商后月供</h4>
+        <div class="big-num hl" id="r-monthly">¥ 4,167</div>
+        <div class="big-sub" id="r-monthly-sub">¥ 4,167 / 月 × 60 期</div>
+        <div class="result-row"><span class="rk">原月供</span><span class="rv" id="r-orig">¥ 9,000</span></div>
+        <div class="result-row"><span class="rk">月供降幅</span><span class="rv delta-down" id="r-drop">↓ 53.7%</span></div>
+        <div class="result-row"><span class="rk">每月省下</span><span class="rv delta-down" id="r-save">¥ 4,833</span></div>
+      </div>
+
+      <div class="result">
+        <h4>② 总还款 &amp; 年限</h4>
+        <div class="big-num" id="r-total">¥ 250,000</div>
+        <div class="big-sub" id="r-total-sub">总还款金额（含已减免）</div>
+        <div class="result-row"><span class="rk">协商后总年限</span><span class="rv" id="r-years">5.0 年</span></div>
+        <div class="result-row"><span class="rk">利息减免</span><span class="rv delta-down" id="r-int-cut">¥ 11,250</span></div>
+        <div class="result-row"><span class="rk">本金减免</span><span class="rv delta-down" id="r-pri-cut">¥ 0</span></div>
+      </div>
+
+      <div class="result warn">
+        <h4>③ 合规校验</h4>
+        <div class="big-num warn" id="r-floor">¥ 4,167</div>
+        <div class="big-sub">合规月供地板价 (P / N_max)</div>
+        <div class="result-row"><span class="rk">当前测算月供</span><span class="rv" id="r-current">¥ 4,167</span></div>
+        <div class="result-row"><span class="rk">校验状态</span><span class="rv" id="r-status">合规区间</span></div>
+        <div class="result-row"><span class="rk">距地板差距</span><span class="rv" id="r-gap">0%</span></div>
+      </div>
+    </div>
+
+    <div class="red-line" id="red-line">
+      <div class="rl-title">警告：当前测算结果疑似灰产话术</div>
+      <div id="red-line-msg"></div>
+      <ul id="red-line-list"></ul>
+    </div>
+  </section>
+
+  <h2 class="section-h">计算公式</h2>
+  <div class="formula">
+    <b>核心公式</b><br>
+    <span class="var">M</span> = [ <span class="var">P</span> + <span class="var">I₀</span> × (1 − <span class="var">α</span>) − <span class="var">P</span> × <span class="var">β</span> ] / <span class="var">N</span>
+    <span class="note">M = 协商后月供　P = 本金　I₀ = 已产生利息+违约金　α = 利息减免比例　β = 本金减免比例　N = 协商分期期数</span>
+    <hr>
+    <b>含宽限期的分段公式 (k > 0)</b><br>
+    前 k 期：<span class="var">M_t</span> = 200~500（象征性低额）<br>
+    后 N−k 期：<span class="var">M_t</span> = (剩余应还 − 前期已还) / (N − k)
+    <span class="note">仅极少数机构提供前低后高方案，常见于房贷展期</span>
+    <hr>
+    <b>合规月供下限校验</b><br>
+    <span class="var">M_floor</span> = <span class="var">P</span> / <span class="var">N_max</span>
+    <span class="note">信用卡 N_max=60、消金常见 N_max=36、银行贷款个案 N_max≤120。M < 50% × M_floor 即视为不合规承诺。</span>
+  </div>
+
+  <h2 class="section-h">使用说明</h2>
+  <ol class="steps">
+    <li>选择具体银行/平台，系统自动套用该机构典型协商政策上限</li>
+    <li>用快选档位输入欠款本金，或直接键入实际数字</li>
+    <li>调整 α（利息减免）/ N（期数）滑杆，实时看月供与年限变化</li>
+    <li>对比"原月供"与"协商月供"，输出降幅</li>
+    <li>关注"合规校验"卡：低于地板价即可能涉及灰产话术</li>
+  </ol>
+
+  <blockquote>
+    本测算器基于公开法规与行业经验，输出为协商空间的<b>合规上限估算</b>，不构成具体银行批复承诺。任何低于"P / N_max"地板价 50% 以上的"协商方案"，均应高度警惕反催收灰产风险（银保监会 2022 年专项风险提示）。
+  </blockquote>
+
+  <h2 class="section-h">政策口径与数据来源</h2>
+  <table>
+    <thead><tr><th>产品类型</th><th>法律 / 监管依据</th><th>最长期数 N_max</th><th>α 减免典型区间</th></tr></thead>
+    <tbody>
+      <tr><td>信用卡逾期</td><td>《商业银行信用卡业务监督管理办法》第 70 条</td><td class="num">60 期</td><td>70%–100%</td></tr>
+      <tr><td>银行个人贷款</td><td>银保监会延期/重组政策（2020、2022、2023）</td><td class="num">个案 ≤120 期</td><td>30%–60%</td></tr>
+      <tr><td>持牌消费金融</td><td>无强制依据，机构内部分期政策</td><td class="num">36 期</td><td>30%–80%</td></tr>
+      <tr><td>互联网借贷平台</td><td>无强制依据，平台自愿</td><td class="num">24–36 期</td><td>0%–50%</td></tr>
+    </tbody>
+  </table>
+
+  <footer>
+    数据口径以公开监管文件 + 头部机构公示分期政策为基础整理，个案结果以机构实际批复为准。<br>
+    本工具不收集任何用户数据，所有计算均在浏览器本地完成。<br>
+    <span style="color: var(--text-3);">© 2026 nic · MIT License</span>
+  </footer>
+
+</main>
+
+<script>
+  const INSTITUTIONS = {
+    credit_card: [
+      { id: 'cmb', name: '招商银行 信用卡', n_max: 60, alpha_lo: 0.7, alpha_hi: 1.0, pass: '高', doc: '失业证明 / 病历 / 收入流水', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'icbc', name: '工商银行 信用卡', n_max: 60, alpha_lo: 0.7, alpha_hi: 1.0, pass: '中-高', doc: '困难证明 / 收入凭证', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'ccb', name: '建设银行 信用卡', n_max: 60, alpha_lo: 0.6, alpha_hi: 1.0, pass: '中', doc: '困难证明 / 银行流水', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'abc', name: '农业银行 信用卡', n_max: 60, alpha_lo: 0.6, alpha_hi: 1.0, pass: '中', doc: '困难证明', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'boc', name: '中国银行 信用卡', n_max: 60, alpha_lo: 0.6, alpha_hi: 1.0, pass: '中', doc: '困难证明', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'bocom', name: '交通银行 信用卡', n_max: 60, alpha_lo: 0.7, alpha_hi: 1.0, pass: '中-高', doc: '失业 / 病历 / 流水', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'spdb', name: '浦发银行 信用卡', n_max: 60, alpha_lo: 0.7, alpha_hi: 1.0, pass: '中-高', doc: '困难材料', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'cmbc', name: '民生银行 信用卡', n_max: 60, alpha_lo: 0.6, alpha_hi: 1.0, pass: '中', doc: '困难证明', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'citic', name: '中信银行 信用卡', n_max: 60, alpha_lo: 0.7, alpha_hi: 1.0, pass: '中-高', doc: '困难材料', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'gdb', name: '广发银行 信用卡', n_max: 60, alpha_lo: 0.6, alpha_hi: 1.0, pass: '中', doc: '困难证明', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'hxb', name: '华夏银行 信用卡', n_max: 60, alpha_lo: 0.5, alpha_hi: 0.9, pass: '中', doc: '困难证明', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'pingan', name: '平安银行 信用卡', n_max: 60, alpha_lo: 0.7, alpha_hi: 1.0, pass: '中-高', doc: '困难材料', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 },
+      { id: 'pufa', name: '光大银行 信用卡', n_max: 60, alpha_lo: 0.6, alpha_hi: 1.0, pass: '中', doc: '困难证明', law: '《商业银行信用卡业务监督管理办法》第七十条', apr: 18.25 }
+    ],
+    bank_loan: [
+      { id: 'icbc_loan', name: '工商银行 个人贷款', n_max: 120, alpha_lo: 0.3, alpha_hi: 0.6, pass: '中', doc: '展期/重组申请书 + 经营或财务困难证明', law: '银保监会延期/重组政策', apr: 7.0 },
+      { id: 'ccb_loan', name: '建设银行 个人贷款', n_max: 120, alpha_lo: 0.3, alpha_hi: 0.6, pass: '中', doc: '展期申请 + 困难证明', law: '银保监会延期/重组政策', apr: 7.0 },
+      { id: 'abc_loan', name: '农业银行 个人贷款', n_max: 120, alpha_lo: 0.3, alpha_hi: 0.5, pass: '中', doc: '展期申请', law: '银保监会延期/重组政策', apr: 7.0 },
+      { id: 'mortgage', name: '商业房贷（任意行）', n_max: 360, alpha_lo: 0.0, alpha_hi: 0.3, pass: '低-中', doc: '收入证明 / 失业证明', law: '银保监会延期还本付息政策', apr: 4.2 },
+      { id: 'biz_loan', name: '经营贷（中小微）', n_max: 60, alpha_lo: 0.2, alpha_hi: 0.5, pass: '中', doc: '经营流水 / 行业受冲击证明', law: '银保监会小微展期政策', apr: 5.5 }
+    ],
+    consumer_finance: [
+      { id: 'mashang', name: '马上消费金融', n_max: 36, alpha_lo: 0.3, alpha_hi: 0.7, pass: '中', doc: '困难证明 / 收入凭证', law: '机构内部政策', apr: 23.9 },
+      { id: 'zhaolian', name: '招联消费金融', n_max: 36, alpha_lo: 0.4, alpha_hi: 0.8, pass: '中-高', doc: '困难材料', law: '机构内部政策', apr: 21.9 },
+      { id: 'xingfu', name: '兴业消费金融', n_max: 36, alpha_lo: 0.3, alpha_hi: 0.7, pass: '中', doc: '困难证明', law: '机构内部政策', apr: 23.9 },
+      { id: 'haier', name: '海尔消费金融', n_max: 36, alpha_lo: 0.3, alpha_hi: 0.6, pass: '中', doc: '困难证明', law: '机构内部政策', apr: 23.9 },
+      { id: 'zhongyou', name: '中邮消费金融', n_max: 36, alpha_lo: 0.4, alpha_hi: 0.8, pass: '中-高', doc: '困难材料', law: '机构内部政策', apr: 21.9 },
+      { id: 'jincheng', name: '锦程消费金融', n_max: 36, alpha_lo: 0.3, alpha_hi: 0.6, pass: '中', doc: '困难证明', law: '机构内部政策', apr: 23.9 },
+      { id: 'sufa', name: '苏宁消费金融', n_max: 36, alpha_lo: 0.3, alpha_hi: 0.6, pass: '中', doc: '困难证明', law: '机构内部政策', apr: 23.9 }
+    ],
+    internet_platform: [
+      { id: 'huabei', name: '蚂蚁花呗 / 借呗', n_max: 36, alpha_lo: 0.2, alpha_hi: 0.6, pass: '中', doc: '系统困难申请 + 凭证', law: '平台自愿', apr: 14.6 },
+      { id: 'jdbt', name: '京东白条 / 金条', n_max: 24, alpha_lo: 0.2, alpha_hi: 0.5, pass: '中', doc: '客服困难申请', law: '平台自愿', apr: 14.6 },
+      { id: 'wlh', name: '微粒贷', n_max: 24, alpha_lo: 0.2, alpha_hi: 0.5, pass: '中', doc: '困难证明', law: '平台自愿', apr: 14.6 },
+      { id: 'meituan', name: '美团月付 / 借钱', n_max: 24, alpha_lo: 0.1, alpha_hi: 0.4, pass: '低-中', doc: '困难证明', law: '平台自愿', apr: 18.0 },
+      { id: 'douyin', name: '抖音放心借', n_max: 24, alpha_lo: 0.1, alpha_hi: 0.4, pass: '低-中', doc: '困难证明', law: '平台自愿', apr: 18.0 },
+      { id: 'du360', name: '度小满 / 有钱花', n_max: 24, alpha_lo: 0.2, alpha_hi: 0.5, pass: '中', doc: '困难证明', law: '平台自愿', apr: 18.0 }
+    ]
+  };
+
+  const productTypeEl = document.getElementById('product-type');
+  const institutionEl = document.getElementById('institution');
+  const principalEl = document.getElementById('principal');
+  const aprEl = document.getElementById('apr');
+  const origMonthlyEl = document.getElementById('orig-monthly');
+  const overdueEl = document.getElementById('overdue-months');
+  const termsEl = document.getElementById('terms');
+  const alphaEl = document.getElementById('alpha');
+  const betaEl = document.getElementById('beta');
+  const graceEl = document.getElementById('grace');
+
+  function refreshInstitutions() {
+    const type = productTypeEl.value;
+    const list = INSTITUTIONS[type];
+    institutionEl.innerHTML = '';
+    list.forEach(i => {
+      const opt = document.createElement('option');
+      opt.value = i.id; opt.textContent = i.name;
+      institutionEl.appendChild(opt);
+    });
+    applyInstitution();
+  }
+
+  function getCurrentInstitution() {
+    const type = productTypeEl.value;
+    const id = institutionEl.value;
+    return INSTITUTIONS[type].find(i => i.id === id);
+  }
+
+  function applyInstitution() {
+    const inst = getCurrentInstitution();
+    if (!inst) return;
+    termsEl.max = inst.n_max;
+    if (parseInt(termsEl.value) > inst.n_max) {
+      termsEl.value = inst.n_max;
+      document.getElementById('terms-val').textContent = inst.n_max;
+    }
+    aprEl.value = inst.apr;
+    document.getElementById('terms-hint').textContent = `当前机构上限 ${inst.n_max} 期`;
+    document.getElementById('institution-hint').textContent = `已套用 ${inst.name} 政策（最长 ${inst.n_max} 期，α 区间 ${(inst.alpha_lo*100).toFixed(0)}–${(inst.alpha_hi*100).toFixed(0)}%）`;
+    document.getElementById('policy-title').textContent = `机构政策 · ${inst.name}`;
+    document.getElementById('policy-law').textContent = inst.law;
+    document.getElementById('policy-nmax').textContent = `${inst.n_max} 期`;
+    document.getElementById('policy-alpha').textContent = `α ${(inst.alpha_lo*100).toFixed(0)}%–${(inst.alpha_hi*100).toFixed(0)}%`;
+    document.getElementById('policy-pass').textContent = inst.pass;
+    document.getElementById('policy-doc').textContent = inst.doc;
+    calc();
+  }
+
+  document.querySelectorAll('.preset-btn[data-amount]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      principalEl.value = btn.dataset.amount;
+      document.querySelectorAll('.preset-btn[data-amount]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      calc();
+    });
+  });
+
+  function bindSlider(slider, valEl, suffix = '') {
+    const update = () => { valEl.textContent = slider.value + suffix; calc(); };
+    slider.addEventListener('input', update);
+    update();
+  }
+  bindSlider(termsEl, document.getElementById('terms-val'));
+  bindSlider(alphaEl, document.getElementById('alpha-val'), '%');
+  bindSlider(betaEl, document.getElementById('beta-val'), '%');
+  bindSlider(graceEl, document.getElementById('grace-val'));
+
+  [productTypeEl, institutionEl, principalEl, aprEl, origMonthlyEl, overdueEl].forEach(el => {
+    el.addEventListener('input', () => {
+      if (el === productTypeEl) refreshInstitutions();
+      else if (el === institutionEl) applyInstitution();
+      else calc();
+    });
+    el.addEventListener('change', () => {
+      if (el === productTypeEl) refreshInstitutions();
+      else if (el === institutionEl) applyInstitution();
+    });
+  });
+
+  function fmtY(n) {
+    if (!isFinite(n)) return '¥ —';
+    return '¥ ' + Math.round(n).toLocaleString('zh-CN');
+  }
+
+  function calc() {
+    const inst = getCurrentInstitution();
+    if (!inst) return;
+    const P = Math.max(0, parseFloat(principalEl.value) || 0);
+    const apr = (parseFloat(aprEl.value) || 0) / 100;
+    const months = Math.max(0, parseInt(overdueEl.value) || 0);
+    const N = Math.min(parseInt(termsEl.value) || 1, inst.n_max);
+    const alpha = (parseFloat(alphaEl.value) || 0) / 100;
+    const beta = (parseFloat(betaEl.value) || 0) / 100;
+    const k = parseInt(graceEl.value) || 0;
+    const origMonthly = Math.max(0, parseFloat(origMonthlyEl.value) || 0);
+
+    const I0 = P * apr * months / 12 + P * 0.05 * Math.min(1, months / 12);
+    const totalRepay = P * (1 - beta) + I0 * (1 - alpha);
+
+    let M;
+    if (k > 0 && k < N) {
+      const lowM = 400;
+      const remain = totalRepay - lowM * k;
+      M = remain / (N - k);
+    } else {
+      M = totalRepay / N;
+    }
+
+    const Mfloor = P / inst.n_max;
+    const ratio = M / Mfloor;
+
+    document.getElementById('r-monthly').textContent = fmtY(M);
+    document.getElementById('r-monthly-sub').textContent = (k > 0 ? `前 ${k} 期 ¥400 + 后 ${N-k} 期 ${fmtY(M)}` : `${fmtY(M)} / 月 × ${N} 期`);
+    document.getElementById('r-orig').textContent = origMonthly > 0 ? fmtY(origMonthly) : '—';
+    if (origMonthly > 0 && M < origMonthly) {
+      const drop = (1 - M / origMonthly) * 100;
+      document.getElementById('r-drop').textContent = '↓ ' + drop.toFixed(1) + '%';
+      document.getElementById('r-drop').className = 'rv delta-down';
+      document.getElementById('r-save').textContent = fmtY(origMonthly - M);
+      document.getElementById('r-save').className = 'rv delta-down';
+    } else {
+      document.getElementById('r-drop').textContent = '—';
+      document.getElementById('r-drop').className = 'rv';
+      document.getElementById('r-save').textContent = '—';
+      document.getElementById('r-save').className = 'rv';
+    }
+
+    document.getElementById('r-total').textContent = fmtY(totalRepay);
+    document.getElementById('r-total-sub').textContent = `本金 ${fmtY(P*(1-beta))} + 利息 ${fmtY(I0*(1-alpha))}`;
+    document.getElementById('r-years').textContent = (N / 12).toFixed(1) + ' 年';
+    document.getElementById('r-int-cut').textContent = fmtY(I0 * alpha);
+    document.getElementById('r-pri-cut').textContent = fmtY(P * beta);
+
+    document.getElementById('r-floor').textContent = fmtY(Mfloor);
+    document.getElementById('r-current').textContent = fmtY(M);
+
+    const statusEl = document.getElementById('r-status');
+    const gapEl = document.getElementById('r-gap');
+    const card = statusEl.closest('.result');
+    card.classList.remove('warn','danger','hl');
+    const redLine = document.getElementById('red-line');
+    const redMsg = document.getElementById('red-line-msg');
+    const redList = document.getElementById('red-line-list');
+    redList.innerHTML = '';
+    redLine.classList.remove('show');
+
+    const gapPct = ((M - Mfloor) / Mfloor) * 100;
+    gapEl.textContent = (gapPct >= 0 ? '+' : '') + gapPct.toFixed(1) + '%';
+
+    if (ratio >= 1) {
+      statusEl.textContent = '合规区间';
+      card.classList.add('hl');
+      document.getElementById('r-floor').className = 'big-num hl';
+    } else if (ratio >= 0.5) {
+      statusEl.textContent = '接近下限';
+      card.classList.add('warn');
+      document.getElementById('r-floor').className = 'big-num warn';
+      if (k === 0) {
+        redLine.classList.add('show');
+        redMsg.textContent = `当前测算月供 ${fmtY(M)}，已低于该机构合规下限 ${fmtY(Mfloor)}。如非"前低后高"分段方案，需警惕：`;
+        redList.innerHTML = '<li>是否仅展示前 6–12 期低额，后期月供陡升？</li><li>是否将多笔债务中一笔的低月供包装成全部？</li>';
+      }
+    } else {
+      statusEl.textContent = '不合规 / 疑似话术';
+      card.classList.add('danger');
+      document.getElementById('r-floor').className = 'big-num danger';
+      redLine.classList.add('show');
+      redMsg.textContent = `当前测算月供 ${fmtY(M)} 仅为合规下限 ${fmtY(Mfloor)} 的 ${(ratio*100).toFixed(1)}%，符合反催收灰产话术特征：`;
+      redList.innerHTML = `
+        <li>合规协商任何机构均无法做到月供低于 P / N_max 的一半</li>
+        <li>常见手法：举报闹访 + 伪造材料 → 平台暂停催收 ≠ 真协商</li>
+        <li>"通讯录保住"、"停催停诉"、"上岸" 均为黑话信号</li>`;
+    }
+  }
+
+  refreshInstitutions();
+</script>
+
+</body>
+</html>
